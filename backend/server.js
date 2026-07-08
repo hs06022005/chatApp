@@ -1,8 +1,7 @@
 import dotenv from "dotenv";
-dotenv.config();
-
 import http from "http";
 import { Server } from "socket.io";
+dotenv.config();
 
 import app from "./src/app.js";
 import setupSocket from "./src/socket/socket.js";
@@ -13,9 +12,9 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+        origin: "http://localhost:5173",
+        credentials: true,
+    },
 });
 
 setupSocket(io);

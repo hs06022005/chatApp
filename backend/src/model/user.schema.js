@@ -28,10 +28,11 @@ const userSchema = new mongoose.Schema({
         default:Date.now
     },
 
-    blockedUsers:{
+    blockedUsers:[{
         type: mongoose.Schema.Types.ObjectId,
         ref:"User"
     }
+    ]
 },
 {
     timestamps:true

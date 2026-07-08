@@ -5,15 +5,14 @@ import Chat from "../model/chat.js";
 
 const sendMessage = async (req,res)=>{
     try{
-        const {sender,receiver,text} = req.body;
-        const message = await Message.create({sender,receiver,text });
-
+        const {sender,receiverId,text} = req.body;
+        const message = await Message.create({sender,receiver:receiverId,text });
         let chat = await Chat.findOne({participants: 
             {
-                $all: [sender, receiver]
+                $all: [sender, receiverId]
             }
         });
-        const receiver =await UserModel.findById(receiver);
+        const receiver =await UserModel.findById(receiverId);
 
         if(
             receiver.blockedUsers.includes(
@@ -28,7 +27,7 @@ const sendMessage = async (req,res)=>{
 
         if (!chat) {
             chat = await Chat.create({
-                participants: [sender,receiver],
+                participants: [sender,receiverId],
                 lastMessage: message._id
             });
         }
@@ -74,7 +73,6 @@ const markAsSeen = async (req, res) => {
 
     try {
         const { messageId } = req.params;
-
         const message =await Message.findByIdAndUpdate(
             messageId,
             {

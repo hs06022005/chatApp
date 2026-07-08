@@ -1,15 +1,23 @@
 import express from "express"
 import dotenv from "dotenv"
+import cors from "cors";
 dotenv.config()
 import connectDb from "./Db/db.js"
 import cookieParser from "cookie-parser"
 import authRoutes from "./routes/auth.route.js"
 import userRoutes from "./routes/user.route.js";
 import messageRoutes from "./routes/message.route.js";
-import chatRoutes from "./routes/chat.routes.js";
+import chatRoutes from "./routes/chat.route.js";
 
 const app = express()
 connectDb()
+
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+        credentials: true,
+    })
+);
 
 //middelware
 app.use(express.json())
