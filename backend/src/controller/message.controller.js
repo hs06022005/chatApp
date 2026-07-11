@@ -1,28 +1,26 @@
 import Message from "../model/message.js";
 import cloudinary from "../config/cloudinary.js";
 import Chat from "../model/chat.js";
+import UserModel from "../model/user.schema.js";
 
 
 const sendMessage = async (req,res)=>{
     try{
-        const {sender,receiverId,text} = req.body;
+        const sender = req.user.id;
+        const { receiverId, text } = req.body;
         const message = await Message.create({sender,receiver:receiverId,text });
         let chat = await Chat.findOne({participants: 
             {
                 $all: [sender, receiverId]
             }
         });
-        const receiver =await UserModel.findById(receiverId);
-
-        if(
-            receiver.blockedUsers.includes(
-            sender
-        )
-        ){
-        return res.status(403).json({
-            message:
-            "You are blocked"
-        });
+        const receiver = await UserModel.findById(receiverId);
+        if (receiver.blockedUsers.some(id => id.equals(sender)))
+        {
+            return res.status(403).json({
+                message:
+                "You are blocked"
+            });
         }
 
         if (!chat) {
@@ -73,14 +71,12 @@ const markAsSeen = async (req, res) => {
 
     try {
         const { messageId } = req.params;
-        const message =await Message.findByIdAndUpdate(
-            messageId,
-            {
-                seen: true
-            },
-            {
-                new: true
+        const message = await Message.findById(messageId);
+        if (!message.receiver.equals(req.user.id)) {
+            return res.status(403).json({
+                message: "Unauthorized"
             });
+        }
         res.status(200).json(message);
 
     } catch (error) {
@@ -113,14 +109,12 @@ const sendImage = async (req,res)=>{
 const deleteMessage = async (req,res)=>{
     try{
         const { messageId } = req.params;
-        const message =await Message.findByIdAndUpdate(messageId,
-            {
-                isDeleted:true
-            },
-            {
-                new:true
-            }
-        );
+        const message = await Message.findById(messageId);
+        if (!message.sender.equals(req.user.id)) {
+            return res.status(403).json({
+                message: "Unauthorized"
+            });
+        }
         res.status(200).json(message);
     }catch(error){
         res.status(500).json({error:error.message});

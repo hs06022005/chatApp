@@ -8,10 +8,16 @@ import authRoutes from "./routes/auth.route.js"
 import userRoutes from "./routes/user.route.js";
 import messageRoutes from "./routes/message.route.js";
 import chatRoutes from "./routes/chat.route.js";
+import helmet from "helmet";
+import compression from "compression";
+import morgan from "morgan";
 
 const app = express()
 connectDb()
 
+app.use(helmet());
+app.use(compression());
+app.use(morgan("dev"));
 app.use(
     cors({
         origin: "http://localhost:5173",

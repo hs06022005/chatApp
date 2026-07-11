@@ -9,8 +9,24 @@ const storage = multer.diskStorage({
     }
 });
 
+const fileFilter = (req, file, cb) => {
+    if (
+        file.mimetype.startsWith("image/") ||
+        file.mimetype.startsWith("audio/")
+    ) {
+        cb(null, true);
+    } else {
+        cb(new Error("Invalid file"));
+    }
+
+};
+
 const upload = multer({
-    storage
+    storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024
+    },
+    fileFilter
 });
 
 export default upload;

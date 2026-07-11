@@ -2,17 +2,57 @@ import userModule from "../model/user.schema.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
+const generateToken = (userId) => {
+    return jwt.sign(
+        {
+            id: userId,
+        },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: "7d",
+        }
+    );
+};
+
 const signup = async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
+        // Validate required fields
         if (!username || !email || !password) {
             return res.status(400).json({
                 message: "All fields are required",
             });
         }
 
-        const existingUser = await userModule.findOne({ email });
+        // Username validation
+        if (username.trim().length < 3) {
+            return res.status(400).json({
+                message: "Username must be at least 3 characters",
+            });
+        }
+
+        // Email validation
+        const emailRegex =
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                message: "Invalid email format",
+            });
+        }
+
+        // Password validation
+        if (password.length < 8) {
+            return res.status(400).json({
+                message:
+                    "Password must be at least 8 characters long",
+            });
+        }
+
+        const existingUser = await userModule.findOne({
+            email,
+        });
 
         if (existingUser) {
             return res.status(400).json({
@@ -20,7 +60,10 @@ const signup = async (req, res) => {
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(
+            password,
+            10
+        );
 
         const newUser = await userModule.create({
             username,
@@ -28,19 +71,21 @@ const signup = async (req, res) => {
             password: hashedPassword,
         });
 
-        const token = jwt.sign(
-            { id: newUser._id },
-            process.env.JWT_SECRET,
-            { expiresIn: "7d" }
-        );
+        const token = generateToken(newUser._id);
 
         res.cookie("token", token, {
             httpOnly: true,
-            sameSite: "lax",
+            secure:
+                process.env.NODE_ENV === "production",
+            sameSite:
+                process.env.NODE_ENV === "production"
+                    ? "none"
+                    : "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         return res.status(201).json({
+            success: true,
             message: "User registered successfully",
             user: {
                 _id: newUser._id,
@@ -50,9 +95,11 @@ const signup = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error(error);
+        console.error("Signup Error:", error);
+
         return res.status(500).json({
-            message: error.message,
+            success: false,
+            message: "Internal Server Error",
         });
     }
 };
@@ -63,44 +110,51 @@ const login = async (req, res) => {
 
         if (!email || !password) {
             return res.status(400).json({
-                message: "Email and password are required",
+                message:
+                    "Email and password are required",
             });
         }
 
-        const user = await userModule.findOne({ email });
+        const user = await userModule.findOne({
+            email,
+        });
 
+        // Prevent user enumeration
         if (!user) {
-            return res.status(404).json({
-                message: "User not found",
+            return res.status(401).json({
+                message:
+                    "Invalid email or password",
             });
         }
 
-        const passwordMatch = await bcrypt.compare(
-            password,
-            user.password
-        );
+        const passwordMatch =
+            await bcrypt.compare(
+                password,
+                user.password
+            );
 
         if (!passwordMatch) {
-            return res.status(400).json({
-                message: "Invalid credentials",
+            return res.status(401).json({
+                message:
+                    "Invalid email or password",
             });
         }
 
-        const token = jwt.sign(
-            {
-                id: user._id,
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: "7d" }
-        );
+        const token = generateToken(user._id);
 
         res.cookie("token", token, {
             httpOnly: true,
-            sameSite: "lax",
+            secure:
+                process.env.NODE_ENV === "production",
+            sameSite:
+                process.env.NODE_ENV === "production"
+                    ? "none"
+                    : "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         return res.status(200).json({
+            success: true,
             message: "Login successful",
             user: {
                 _id: user._id,
@@ -110,24 +164,37 @@ const login = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error(error);
+        console.error("Login Error:", error);
+
         return res.status(500).json({
-            message: error.message,
+            success: false,
+            message: "Internal Server Error",
         });
     }
 };
 
 const logout = async (req, res) => {
     try {
-        res.clearCookie("token");
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure:
+                process.env.NODE_ENV === "production",
+            sameSite:
+                process.env.NODE_ENV === "production"
+                    ? "none"
+                    : "lax",
+        });
 
         return res.status(200).json({
+            success: true,
             message: "Logged out successfully",
         });
     } catch (error) {
-        console.error(error);
+        console.error("Logout Error:", error);
+
         return res.status(500).json({
-            message: error.message,
+            success: false,
+            message: "Internal Server Error",
         });
     }
 };

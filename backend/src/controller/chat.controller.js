@@ -22,9 +22,10 @@ const getChats = async (req, res) => {
 const createGroup = async (req, res) => {
 
     try {
-        const {groupName,participants,adminId} = req.body;
+        const {groupName,participants} = req.body;
+        const groupAdmin = req.user.id;
         const group = await Chat.create({groupName,participants,
-                                        isGroup: true,groupAdmin: adminId});
+                                        isGroup: true,groupAdmin});
         res.status(201).json(group);
 
     } catch (error) {
@@ -97,13 +98,14 @@ const leaveGroup = async (req,res)=>{
 const deleteGroup = async (req,res)=>{
     try{
         const { groupId } = req.params;
-        await Chat.findByIdAndDelete(
-            groupId
-        );
-        res.status(200).json({
-            message:
-            "Group deleted"
-        });
+        const group = await Chat.findById(groupId);
+        if (!group.groupAdmin.equals(req.user.id)) {
+            return res.status(403).json({
+                message: "Only admin can delete group"
+            });
+        }
+
+        await Chat.findByIdAndDelete(groupId);
     }catch(error){
         res.status(500).json({ error:error.message });
     }
