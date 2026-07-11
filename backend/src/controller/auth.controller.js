@@ -115,30 +115,23 @@ const login = async (req, res) => {
             });
         }
 
-        const user = await userModule.findOne({
-            email,
-        });
+        const user = await userModule.findOne({ email });
 
-        // Prevent user enumeration
+        console.log("Email received:", email);
+        console.log("User found:", user);
+
         if (!user) {
             return res.status(401).json({
-                message:
-                    "Invalid email or password",
+                message: "Invalid email or password",
             });
         }
 
-        const passwordMatch =
-            await bcrypt.compare(
-                password,
-                user.password
-            );
+        const passwordMatch = await bcrypt.compare(
+            password,
+            user.password
+        );
 
-        if (!passwordMatch) {
-            return res.status(401).json({
-                message:
-                    "Invalid email or password",
-            });
-        }
+        console.log("Password Match:", passwordMatch);
 
         const token = generateToken(user._id);
 
